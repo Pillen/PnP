@@ -30,6 +30,7 @@ namespace Provisioning.Common.Data.SiteRequests.Impl
         const string CAML_GETREQUEST_BY_URL = "<View><Query><Where><Eq><FieldRef Name='SP_Url'/><Value Type='Text'>{0}</Value></Eq></Where></Query><RowLimit>100</RowLimit></View>";
         const string CAML_APPROVEDREQUESTS = "<View><Query><Where><Eq><FieldRef Name='SP_ProvisioningStatus'/><Value Type='Text'>Approved</Value></Eq></Where></Query><RowLimit>100</RowLimit></View>";
         const string CAML_GETREQUESTSBYOWNER = "<View><Query><Where><Eq><FieldRef Name='SP_Owner' LookupId='True'/><Value Type='Int'>{0}</Value></Eq></Where></Query></View>";
+        const string CAML_INCOMPLETEREQUESTS = "<View><Query><Where><And><And><Neq><FieldRef Name='SP_ProvisioningStatus'/><Value Type='Text'>Complete</Value></Neq><Neq><FieldRef Name='SP_ProvisioningStatus'/><Value Type='Text'>Approved</Value></Neq></And><Neq><FieldRef Name='SP_ProvisioningStatus'/><Value Type='Text'>New</Value></Neq></And></Where></Query><RowLimit>100</RowLimit></View>";
         #endregion
 
         #region Constructor
@@ -370,6 +371,12 @@ namespace Provisioning.Common.Data.SiteRequests.Impl
             return this.GetSiteRequestsByCaml(CAML_APPROVEDREQUESTS);
         }
 
+        public ICollection<SiteInformation> GetIncompleteRequests()
+        {
+            Log.Info("SPSiteRequestManager.GetIncompleteRequests", "Entering GetIncompleteRequests");
+            return this.GetSiteRequestsByCaml(CAML_INCOMPLETEREQUESTS);
+        }
+
         public bool DoesSiteRequestExist(string url)
         {
             Log.Info("SPSiteRequestManager.DoesSiteRequestExist", "Entering DoesSiteRequestExist url {0}", url);
@@ -416,10 +423,8 @@ namespace Provisioning.Common.Data.SiteRequests.Impl
                 if (_itemCollection.Count != 0) {
                     ListItem _item = _itemCollection.FirstOrDefault();
                     _item[SiteRequestFields.PROVISIONING_STATUS_NAME] = status.ToString();
-               
-                    if (!string.IsNullOrEmpty(statusMessage)) {
-                        _item[SiteRequestFields.STATUSMESSAGE_NAME] = statusMessage;
-                    }
+                    _item[SiteRequestFields.STATUSMESSAGE_NAME] = statusMessage;
+
                     _item.Update();
                     ctx.ExecuteQuery();
                 }
@@ -445,7 +450,7 @@ namespace Provisioning.Common.Data.SiteRequests.Impl
                     var _message = String.Format("The List {0} does not exist in Site {1}",
                          SiteRequestList.TITLE,
                          _web.Url);
-                    Log.Fatal("SPSiteRequestManager.UpdateRequestStatus", _message);
+                    Log.Fatal("SPSiteRequestManager.UpdateRequestUrl", _message);
                     throw new DataStoreException(_message);
                 }
 
@@ -468,8 +473,8 @@ namespace Provisioning.Common.Data.SiteRequests.Impl
                 }
 
                 _timespan.Stop();
-                Log.Info("SPSiteRequestManager.UpdateRequestStatus", PCResources.SiteRequestUpdate_Successful, url, newUrl);
-                Log.TraceApi("SharePoint", "SPSiteRequestManager.UpdateRequestStatus", _timespan.Elapsed);
+                Log.Info("SPSiteRequestManager.UpdateRequestUrl", PCResources.SiteRequestUpdate_Successful, url, newUrl);
+                Log.TraceApi("SharePoint", "SPSiteRequestManager.UpdateRequestUrl", _timespan.Elapsed);
             });
         }
 
